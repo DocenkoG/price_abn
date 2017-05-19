@@ -7,8 +7,8 @@ import io
 import sys
 import configparser
 import time
-# import openpyxl                       # Для .xlsx
-import xlrd                             # для .xls
+import openpyxl                       # Для .xlsx
+# import xlrd                             # для .xls
 
 
 def make_loger():
@@ -32,6 +32,7 @@ def convert2csv( myname ):
     global BrandFonti
     global SubGrpFonti
     global HeaderFonti
+    global HeaderFontSize
     global RegularFontSize
     global SubGrpBackgroundColor
     global GrpBackgroundColor
@@ -44,96 +45,98 @@ def convert2csv( myname ):
     # Прочитать конфигурацию из файла
     ff = config_read( myname )
     log.debug('Открываю файл '+ FilenameIn)
-#    book = openpyxl.load_workbook(filename = os.path.join( mydir, FilenameIn), read_only=False, keep_vba=False, data_only=False, use_iterators=False)
-    book = xlrd.open_workbook( FilenameIn.encode('cp1251'), formatting_info=True)
-#    book = xlrd.open_workbook( os.path.join( mydir, FilenameIn.encode('cp1251')), formatting_info=True)
+    book = openpyxl.load_workbook(filename = FilenameIn, read_only=False, keep_vba=False, data_only=False)
+#   book = xlrd.open_workbook( FilenameIn.encode('cp1251'), formatting_info=True)
+#   book = xlrd.open_workbook( os.path.join( mydir, FilenameIn.encode('cp1251')), formatting_info=True)
     
     log.debug('Устанавливаю страницу ' + SheetName )
-    sh = book.sheet_by_name( SheetName )
+#   sh = book.sheet_by_name( SheetName )                     # xls
+    sh = book[SheetName]                                     # xlsx   
+       
 
     ssss = []
     line_qty = 0
-    log.debug('   На ней строк  '+ str(sh.nrows))
+    log.debug('На странице %d строк' % book[SheetName].max_row)
                                                              # цикл по строкам файла
-    for i in range(0,   sh.nrows) :
-        line_qty += 1
-        xfx = sh.cell_xf_index(i, colGrp-1)
-        xf  = book.xf_list[xfx]
-        bgcx  = xf.background.pattern_colour_index
-        fonti = xf.font_index
-        '''                                                  # Атрибуты шрифта для настройки конфига
-        font = book.font_list[fonti]
-        print( '---------------------- Строка', i, '-----------------------' )
-        print( 'background_colour_index=',bgcx)
-        print( 'fonti=', fonti)
-        print( 'bold=', font.bold)
-        print( 'weight=', font.weight)
-        print( 'height=', font.height)
-        print( 'italic=', font.italic)
-        print( 'colour_index=', font.colour_index )
-        print( 'name=', font.name)
-        print( 'Строка', i, sh.cell(i, in_columns_j['код']-1).value)
-        '''
-        if (fonti == HeaderFonti) :                                # Заголовок таблицы
+    for i in range(book[SheetName].min_row, book[SheetName].max_row+1) :
+        i_last = i
+        try:
+            ccc = sh.cell(row=i, column=colGrp)
+            if ccc.value == None :
+                print (i, colGrp, 'Пусто!!!')
+                continue
+            '''                                        # Атрибуты шрифта для настройки конфига
+            print( 'Строка', i, ccc.value,)
+            print( 'font=',   ccc.font.name,)
+            print( 'bold=',   ccc.font.bold,)
+            print( 'italic=', ccc.font.italic,)
+            print( 'size=',   ccc.font.size)
+            #print( 'colour=', ccc.font.color.rgb)
+            print( 'background=',ccc.fill.fill_type)
+            print( 'backgroundColor1=', ccc.fill.start_color)
+            print( 'backgroundColor2=', ccc.fill.end_color)
+            print( 'Строка', i, 'столбец', colGrp, 'значение', ccc.value)
             continue
-        if (fonti == BrandFonti) :                                 # брэнд
-            brandName = quoted(sh.cell(i,colGrp-1).value) 
-            continue
-        if (fonti in ( GrpFonti, SubGrpFonti)):                    # Группа или подгруппа
-            tmpName = quoted(sh.cell(i,colGrp-1).value)   
-            if tmpName[1] in '0123456789':                         # да, группа                   
-                grpName = tmpName         
-                subGrpName = ''
-                brandName = ''
-            else :                                                 # нет, подгруппа
-                subGrpName = tmpName         
-                brandName = ''
-            continue
+            '''
 
-        if  (      sh.cell(i, in_columns_j['закупка']-1).ctype not in (2,3) ) or \
-            ('' == sh.cell(i, in_columns_j['код']-1).value ) :     # Пустая строка (нет кода или цены)
-            continue
+#            if  GrpFontSize <= ccc.font.size :                      # Группа
+#                grpName = quoted(sh.cell(row=i, column=colGrp).value)
+#                subGrpName = ''
+#                print('группа', grpName)
 
-        else :                                                     # Информационная строка
-            sss = []                                               # формируемая строка для вывода в файл
-            for strname in out_columns_names :
-                if strname in out_columns_j :
-                    #
-                    #                                              берем значение из соответствующей ячейки файла
-                    j = out_columns_j[strname]-1 
-                    cell = sh.cell(i, j)
-                    cellType  = cell.ctype
-                    cellValue = cell.value
-                    #
-                    #                                   дополнительная обработка поля.
-                    if cellType in (2,3) :
-                        if int(cellValue) == cellValue:
-                            ss = str(int(cellValue))
-                        else :
-                            ss = str(cellValue)
-                    elif strname in ('закупка','продажа','цена1', 'цена2') :
-                        ss = '0' 
-                    elif strname in ('наличие') and (cellValue == ''):
-                        ss = '0' 
-                    elif cellType == 1 :
-                        ss = quoted(cellValue) 
-                    else:
-                        ss = ''
-                else : 
-                    # вычисляемое поле
-                    s1 = brandName
-                    s2 = sh.cell(i, in_columns_j['код']-1).value
-                    s3 = sh.cell(i, in_columns_j['примечание']-1).value
-                    ss = quoted( s1 + ', ' + s2 + ', ' + s3 )
-                                    
-                sss.append(ss)
-            sss.append(grpName)
-            sss.append(subGrpName)
-            sss.append(brandName)
-            ssss.append(','.join(sss))
-        #else :
-        #   loger.debug('Нераспознана строка: <' + sh.cell(i, out_columns_j['код']-1).value.encode('cp1251') + '>' )
-    log.info('На странице %s обработано %s строк прайса.' % (SheetName, line_qty) ) 
+#            elif SubGrpFontSize == ccc.font.size :                  # Подгруппа
+#                subGrpName = quoted(sh.cell(row=i,column=colSGrp).value)
+    
+            if HeaderFontSize == ccc.font.size :                            # Заголовок таблицы
+                pass
+    
+            elif (None == sh.cell(row=i, column=in_columns_j['закупка']).value) :    # Пустая строка
+                pass
+                print( 'Пустая строка:', sh.cell(row=i, column=in_columns_j['закупка']).value )
+    
+            elif RegularFontSize == ccc.font.size :                 # Информационная строка
+                ccc = sh.cell(row=i, column=out_columns_j['код'])
+                code = ccc.value
+                sss = []                                    # формируемая строка для вывода в файл
+                for strname in out_columns_names :
+                    if strname in out_columns_j :
+                        # берем значение из соответствующей ячейки файла
+                        j = out_columns_j[strname] 
+                        ccc = sh.cell(row=i, column=j)
+                        cellType  = ccc.data_type
+                        cellValue = ccc.value
+#                       print (cellType, cellValue)
+                        if cellValue == None : 
+                            ss = ''
+                        elif cellType in ('n') :                            # numeric
+                            if int(cellValue) == cellValue:
+                                ss = str(int(cellValue))
+                            else :
+                                ss = str(cellValue)
+                        elif strname in ('закупка','продажа','цена1', 'цена2') :
+                            ss = '0' 
+                        elif cellType == 's' :
+                            ss = quoted(cellValue ) 
+                        else:
+                            ss = ''
+                    else : 
+                        # вычисляемое поле
+                        s1 = sh.cell(row=i, column=in_columns_j['бренд']).value
+                        s2 = sh.cell(row=i, column=in_columns_j['код']).value
+                        s3 = sh.cell(row=i, column=in_columns_j['примечание']).value
+                        ss = quoted(s1 + ' ' + s2 + ' ' + s3)
+                        pass
+                    sss.append(ss)
+    
+#               sss.append(grpName)
+#               sss.append(subGrpName)
+                ssss.append(','.join(sss))
+            else :
+                log.debug('Нераспознана строка: <' + sh.cell(row=i, column=out_columns_j['код']).value + '>' )
+        except Exception as e:
+            log.debug('Exception: <' + str(e) + '> при обработке строки ' + str(i) +'<' + '>' )
+            raise e
+
     
     f2 = open( FilenameOut, 'w', encoding='cp1251')
     f2.write(strHeader  + ',\n')
@@ -142,15 +145,6 @@ def convert2csv( myname ):
     data = dddd.decode(encoding='cp1251')
     f2.write(data)
     f2.close()
-
-'''
-            else :
-                loger.debug('Нераспознана строка: <' + sh.cell(row=i, column=out_columns_j['код']).value + '>' )
-        except Exception as e:
-            loger.debug('Exception: <' + str(e) + '> при обработке строки ' + str(i) +'<' + '>' )
-            raise e
-'''    
-
 
 
 
@@ -168,6 +162,7 @@ def config_read( myname ):
     global SubGrpFonti
     global BrandFonti
     global HeaderFonti
+    global HeaderFontSize
     global RegularFontSize
     global SubGrpBackgroundColor
     global GrpBackgroundColor
@@ -207,7 +202,7 @@ def config_read( myname ):
     for vName in out_columns_j :
         print(vName, '\t', out_columns_j[vName])    
     print('-----------------------------------')
-    strHeader = ','.join(out_columns_names) +',группа,подгруппа,бренд,'
+    strHeader = ','.join(out_columns_names)           # +',бренд,группа,подгруппа'
     print('HEAD =', strHeader)
 
     # считываем имена файлов и имя листа
@@ -229,6 +224,8 @@ def config_read( myname ):
         BrandFonti           = config.getint('grp_properties', 'BrandFonti')
     if ('' != config.get('grp_properties',  'HeaderFonti')) :
         HeaderFonti          = config.getint('grp_properties','HeaderFonti')
+    if ('' != config.get('grp_properties',  'HeaderFontSize')) :
+        HeaderFontSize       = config.getint('grp_properties','HeaderFontSize')
     if ('' != config.get('grp_properties',  'RegularFontSize')) :
         RegularFontSize      = config.getint('grp_properties','RegularFontSize')
     if ('' != config.get('grp_properties',  'SubGrpFontSize')): 
