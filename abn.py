@@ -255,7 +255,7 @@ def processing(cfgFName):
     if cfg.has_section('download'):
         result = download(cfg)
     if is_file_fresh( filename_new, int(cfg.get('basic','срок годности'))):
-        #os.system( 'brullov_converter_xlsx.xlsm')
+        os.system( 'abn_converter_xlsx.xlsm')
         #convert_csv2csv(cfg)
         convert_excel2csv(cfg)
     folderName = os.path.basename(os.getcwd())
