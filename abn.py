@@ -170,18 +170,22 @@ def download( cfg ):
     try:
         s = requests.Session()
         r = s.get(url_lk,  headers = headers) 
-        #print(r.text)                         # посмотреть имена полей формы
+        print(r.text)                         # посмотреть имена полей формы
+        time.sleep(2)
         page = lxml.html.fromstring(r.text)
         form = page.forms[0]
-        #print(form)
+        #print(form)                           # ===
+        time.sleep(2)
         form.fields['login'] = login
         form.fields['pass'] = password
         r = s.post(url_lk+ form.action, data=form.form_values())
         #print('<<<',r.text,'>>>')
+        time.sleep(2)
         print('       ==================================================')
 
         log.debug('Авторизация на %s   --- code=%d', url_lk, r.status_code)
-        r = s.get(url_file)
+        time.sleep(15)
+        r = s.get(url_file,  headers = headers)
         log.debug('Загрузка файла %16d bytes   --- code=%d', len(r.content), r.status_code)
         retCode = True
         '''
