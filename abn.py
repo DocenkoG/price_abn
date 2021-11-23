@@ -184,7 +184,8 @@ def download( cfg ):
         print('       ==================================================')
 
         log.debug('Авторизация на %s   --- code=%d', url_lk, r.status_code)
-        time.sleep(15)
+        log.debug('Ждем 2 минуты перед скачиванием файла ...')
+        time.sleep(120)             # Пауза важна для завершения авторизации !!!
         r = s.get(url_file,  headers = headers)
         log.debug('Загрузка файла %16d bytes   --- code=%d', len(r.content), r.status_code)
         retCode = True
