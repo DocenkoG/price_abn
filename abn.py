@@ -180,12 +180,12 @@ def download( cfg ):
         form.fields['pass'] = password
         r = s.post(url_lk+ form.action, data=form.form_values())
         #print('<<<',r.text,'>>>')
-        time.sleep(2)
+        time.sleep(20)
         print('       ==================================================')
 
         log.debug('Авторизация на %s   --- code=%d', url_lk, r.status_code)
         log.debug('Ждем 2 минуты перед скачиванием файла ...')
-        time.sleep(120)             # Пауза важна для завершения авторизации !!!
+        time.sleep(150)             # Пауза важна для завершения авторизации !!!
         r = s.get(url_file,  headers = headers)
         log.debug('Загрузка файла %16d bytes   --- code=%d', len(r.content), r.status_code)
         retCode = True
